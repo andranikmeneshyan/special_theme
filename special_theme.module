@@ -1,0 +1,152 @@
+<?php
+
+/*
+ * * Implements hook_menu().
+ */
+
+function special_theme_menu() {
+  $items['admin/config/user-interface/special-theme'] = array(
+    'title' => 'Custom theme settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('special_theme_form', 1),
+    'access callback' => 'special_theme_permission',
+  );
+  return $items;
+}
+
+/*
+ * * Implements hook_permission().
+ */
+
+function special_theme_permission() {
+  return array(
+    'special theme permission' => array(
+      'title' => t('Special theme Permissions'),
+      'description' => t('Deny access to certain users.'),
+    ),
+  );
+}
+
+/*
+ * * Implements hook_form().
+ */
+
+function special_theme_form($form, &$form_state) {
+  $form['theme_name'] = array(
+    '#type' => 'radios',
+    '#title' => t('Select custom theme name'),
+    '#default_value' => variable_get('theme_name', ''),
+    '#weight' => 0,
+    '#options' => special_theme_get_themes_list(),
+  );
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit',
+  );
+  return $form;
+}
+
+function special_theme_get_themes_list() {
+  $themes = list_themes();
+  $active_themes = array();
+  unset($themes['special']);
+  foreach ($themes as $key => $value) {
+    if ($value->status == '1') {
+      $active_themes[$value->name] = $value->info['name'];
+    }
+  }
+  return $active_themes;
+}
+
+/*
+ * * Implements hook_form_submit().
+ */
+
+function special_theme_form_submit($form, &$form_state) {
+  if (!empty($form_state['values']) && isset($form_state['values']['theme_name'])) {
+    variable_set('theme_name', $form_state['values']['theme_name']);
+  }
+}
+
+/*
+ * * Implements hook_theme().
+ */
+
+function special_theme_custom_theme() {
+  if (isset($_GET['theme'])) {
+    $theme_type = $_GET['theme'];
+    special_theme_set_current_theme($theme_type);
+  }
+  
+  return special_theme_get_current_theme();
+}
+
+/* Get current theme */
+
+function special_theme_get_current_theme() {
+  if (isset($_SESSION['theme_name'])) {
+    return $_SESSION['theme_name'];
+  }
+  else {
+    return variable_get('theme_name', '');
+  }
+}
+
+/* Set current theme */
+
+function special_theme_set_current_theme($type = '') {
+  if ($type == 'special') {
+    $_SESSION['theme_name'] = 'special';
+  }
+  else {
+    $_SESSION['theme_name'] = variable_get('theme_name', '');
+  }
+}
+
+/*
+ * * Implements hook_block_info();
+ */
+
+function special_theme_block_info() {
+  $blocks['switcher'] = array(
+    'info' => t("Swithcer"),
+    'cache' => DRUPAL_NO_CACHE
+  );
+  return $blocks;
+}
+
+/*
+ * * Implements hook_block_view();
+ */
+
+function special_theme_block_view($delta = '') {
+  switch ($delta) {
+    case 'switcher':
+      $block['subject'] = t('Theme switcher');
+      $block['content'] = create_switcher();
+      break;
+  }
+  return $block;
+}
+
+/* Create switcher block */
+
+function create_switcher() {
+  $out = array();
+  $param = ''; 
+  $icon_class = '';
+  if (special_theme_get_current_theme() == 'city') {
+    $param = '?theme=special';
+    $icon_class = 'eye-open';
+  }
+  else {
+    $param = '?theme';
+    $icon_class = 'eye-close';
+  }
+  $out['switcher'] = array(
+    '#prefix' => '<div class="switcher">',
+    '#markup' => "<a href=$param><i class='{$icon_class}' aria-hidden='true'></i></a>",
+    "#suffix" => '</div>',
+  );
+  return $out;
+}
