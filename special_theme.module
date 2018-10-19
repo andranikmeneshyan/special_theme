@@ -135,7 +135,7 @@ function create_switcher() {
   $out = array();
   $param = ''; 
   $icon_class = '';
-  if (special_theme_get_current_theme() == 'city') {
+  if (special_theme_get_current_theme() == variable_get('theme_name')) {
     $param = '?theme=special';
     $icon_class = 'eye-open';
   }
